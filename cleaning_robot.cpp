@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-#include <list>
+
 using namespace std;
 #define maxint 1000000
 
