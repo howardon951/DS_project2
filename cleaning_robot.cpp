@@ -11,7 +11,7 @@ public:
     int type;      // 0: floor  1:wall  2:cleaned floor 3:battery
     int dist = -1; //the needed steps to startpoint
     bool visit = 0;
-    bool nearby = 0;
+    int nearby = 0;
     int r, c;
     node *dir[4]; //*up = 0, *down = 1, *left = 2, *right = 3;
 };
@@ -53,6 +53,7 @@ void cal_dist(node *startnode);
 void start_cleaning(node *startpoint);
 void printmap(void);
 void build_adj_list();
+void printstep(node *now);
 
 /*********************main start*******************************/
 int main()
@@ -174,35 +175,70 @@ void start_cleaning(node *startpoint)
     cleaning_robot *godd = &doggy;
     //now all node's visit is 1
     //visit==1 means not yet visit, visit==0 means the node is visited
-    while (floor_num) //one tour
+    while (floor_num--) //one tour
     {
         godd->now = startpoint;
         godd->battery_remain = battery_capacity;
         //node *path[battery_capacity / 2 + 1];
         while (godd->battery_remain > 0) //one step
         {
-            godd->now->visit = 0; //mark visited
-            int next_dir, dirw = 0;
+            printstep(godd->now);
+            godd->now->visit = 0;  //mark visited
+            godd->now->nearby = 0; //mark visited
+            int next_dir = -1, dirw = 0;
+            //set (next dir) =2 if near wall
+            for (int i = 0; i < 4; i++)
+            {
+                if (godd->now->dir[i]->type == 1) //is wall
+                    godd->now->dir[i]->nearby = 2;
+            }
+            //judje direction
             for (int i = 0; i < 4; i++)
             {
                 int tmp = 0;
                 if (godd->now->dir[i] != NULL)
                 {
                     if (godd->now->dir[i]->visit == 1) //unvisit
-                        tmp += 10;
-                    if (godd->now->dir[i]->nearby == 1) //is near
+                                                       /*    tmp += 10;
+                    if (godd->now->dir[i]->nearby == 2) //is near wall
                         tmp += 5;
-                    if (tmp >= dirw && godd->battery_remain - 1 - godd->now->dir[i]->dist >= 0) //15:unvisit&near 10:unvisit&!near 5:visit&near 0:visit&!near
+                    if (godd->now->dir[i]->nearby == 2) //is near path
+                        tmp += 2;
+                    if (tmp >= dirw) //15:unvisit&near 10:unvisit&!near 5:visit&near 0:visit&!near
+                     */
                         next_dir = i;
                 }
             }
-            if (godd->now->dir[next_dir]->visit == 1)
-                floor_num--;
-            godd->prev = godd->now;
-            godd->now = godd->now->dir[next_dir];
+
+            if (godd->battery_remain - 1 - godd->now->dir[next_dir]->dist >= 0)
+            {
+                if (godd->now->dir[next_dir]->visit == 1)
+                    floor_num--;
+                //set near path
+                for (int i = 0; i < 4; i++)
+                {
+                    if (godd->now->dir[i] != NULL)
+                        godd->now->dir[i]->nearby = 1;
+                }
+                godd->prev = godd->now;
+                godd->now = godd->now->dir[next_dir];
+            }
+
+            else
+            {
+                node *tmp = godd->now;
+                godd->now = godd->prev;
+                godd->prev = tmp;
+            }
             godd->battery_remain--;
         }
+        puts("------------");
     }
+}
+
+void printstep(node *now)
+{
+    cout << now->r << " " << now->c << endl;
 }
 
 void printmap(void)
