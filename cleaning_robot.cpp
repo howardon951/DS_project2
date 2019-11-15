@@ -11,15 +11,15 @@ public:
     int type;      // 0: floor  1:wall  2:cleaned floor 3:battery
     int dist = -1; //the needed steps to startpoint
     bool visit = 0;
+    bool nearby = 0;
     int r, c;
-    node *dir[4]; //*up = NULL, *down = NULL, *left = NULL, *right = NULL;
-    //u = 0, d = 1, l = 2, r = 3;
+    node *dir[4]; //*up = 0, *down = 1, *left = 2, *right = 3;
 };
 struct cleaning_robot
 {
-    int direction; //up:-1 down: 1 left:-2 right:2
+    int direction; // up: 0 down: 1 left: 2 right: 3
     int battery_remain;
-    node *next;
+    node *next, *prev, *now;
 };
 class QueueArrayCircular
 {
@@ -43,7 +43,7 @@ public:
     int getCapacity(); // 驗證用, 可有可無
 };
 
-int map_row, map_col, battery_capacity;
+int map_row, map_col, battery_capacity, floor_num = 0;
 char **field;
 node **map;
 node *recharger;
@@ -81,6 +81,8 @@ int main()
                 map[i][j].type = field[i][j] - '0';
                 map[i][j].r = i;
                 map[i][j].c = j;
+                if (map[i][j].type == 0)
+                    floor_num++;
             }
 
             else if (field[i][j] == 'R')
@@ -99,11 +101,11 @@ int main()
 
     build_adj_list();
     cal_dist(recharger); //BFS
-
+    printmap();
+    start_cleaning(recharger);
     //check_battery();
     printmap();
     /*algorithm--while loop*/
-    start_cleaning(recharger);
 
     /*  write the result to output.final */
     ofstream outfile;
@@ -168,16 +170,39 @@ void cal_dist(node *startnode)
 }
 void start_cleaning(node *startpoint)
 {
-    while (1)
+    cleaning_robot doggy;
+    cleaning_robot *godd = &doggy;
+    //now all node's visit is 1
+    //visit==1 means not yet visit, visit==0 means the node is visited
+    while (floor_num) //one tour
     {
-    }
-
-    for (int i = 0; i < map_row; i++)
-    {
-        for (int j = 0; j < map_col; j++)
+        godd->now = startpoint;
+        godd->battery_remain = battery_capacity;
+        //node *path[battery_capacity / 2 + 1];
+        while (godd->battery_remain > 0) //one step
         {
+            godd->now->visit = 0; //mark visited
+            int next_dir, dirw = 0;
+            for (int i = 0; i < 4; i++)
+            {
+                int tmp = 0;
+                if (godd->now->dir[i] != NULL)
+                {
+                    if (godd->now->dir[i]->visit == 1) //unvisit
+                        tmp += 10;
+                    if (godd->now->dir[i]->nearby == 1) //is near
+                        tmp += 5;
+                    if (tmp >= dirw && godd->battery_remain - 1 - godd->now->dir[i]->dist >= 0) //15:unvisit&near 10:unvisit&!near 5:visit&near 0:visit&!near
+                        next_dir = i;
+                }
+            }
+            if (godd->now->dir[next_dir]->visit == 1)
+                floor_num--;
+            godd->prev = godd->now;
+            godd->now = godd->now->dir[next_dir];
+            godd->battery_remain--;
         }
-    };
+    }
 }
 
 void printmap(void)
@@ -186,7 +211,7 @@ void printmap(void)
     {
         for (int j = 0; j < map_col; j++)
         {
-            cout << map[i][j].dist << " ";
+            cout << map[i][j].visit << " ";
         }
         cout << endl;
     };
