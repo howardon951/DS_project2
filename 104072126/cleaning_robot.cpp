@@ -7,7 +7,7 @@
 #include "stack_node.cpp"
 #include "QueueArrayCircular.cpp"
 using namespace std;
-#define maxint 1000000
+
 /*
 class node
 {
@@ -16,8 +16,7 @@ public:
     int dist = -1; //the needed steps to startpoint
     bool visit = 0;
     int r, c;
-    node *dir[4]; //*up = NULL, *down = NULL, *left = NULL, *right = NULL;
-    //u = 0, d = 1, l = 2, r = 3;
+    node *dir[4]; //u = 0, d = 1, l = 2, r = 3;
 };
 */
 
@@ -36,11 +35,12 @@ node *recharger;
 //void check_battery(void);
 void error(void);
 void cal_dist(node *startnode);
-void start_cleaning(node *startpoint, MaxHeap *heap_node);
+void start_cleaning(node *startpoint, MaxHeap *heap_node, QueueArrayCircular *output_queue);
 void printmap(void);
 void build_adj_list();
 void clear_visit(node **map);
 node *go_smaller(node *now);
+int step_count = 0;
 
 /*********************main start*******************************/
 int main()
@@ -109,71 +109,32 @@ int main()
     ofstream outfile;
     outfile.open("output.final");
 
-    /*algorithm--while loop*/
-    //start_cleaning(recharger, &heap_node);
-    //void clear_visit( map);
+    QueueArrayCircular output_queue;
+    start_cleaning(recharger, &heap_node, &output_queue); /*main algorithm*/
+
     printmap();
-    node *des_point;
-    while (des_point = heap_node.extractMax())
+    outfile << step_count << endl;
+    while (!output_queue.queue_IsEmpty())
     {
-        if (des_point == NULL)
-            break;
-        if (des_point->visit == false)
-            continue; //had visited
-        des_point->visit = false;
-        //printmap();
-
-        node *now = des_point;
-        StackArray s;
-        while (now != recharger) //go path
-        {
-            static int count = 0;
-            cout << endl
-                 << count++;
-            now = go_smaller(now);
-            s.stack_Push(now);
-            if (now->visit == true)
-                now->visit = false;
-        }
-        now = des_point;
-        // cout stack path
-        while (!s.stack_IsEmpty())
-        {
-            outfile << s.stack_Top()->r << " " << s.stack_Top()->c << endl;
-            s.stack_Pop();
-        }
-
-        while (now != recharger) //back path
-        {
-            static int count2 = 0;
-            cout << endl
-                 << count2++ << "***";
-            // cout path
-            outfile << now->r << " " << now->c << endl;
-            now = go_smaller(now);
-            s.stack_Push(now);
-            if (now->visit == true)
-                now->visit = false;
-        }
+        outfile << output_queue.queue_getFront()->r << " " << output_queue.queue_getFront()->c << endl;
+        output_queue.queue_Pop();
     }
-    outfile << recharger->r << " " << recharger->c << endl;
-    printmap();
     outfile.close();
     return 0;
 }
 
 /*********************main end*********************************/
 
-void start_cleaning(node *startpoint, MaxHeap *heap_node)
+void start_cleaning(node *startpoint, MaxHeap *heap_node, QueueArrayCircular *output_queue)
 {
     node *des_point;
     while (des_point = heap_node->extractMax())
     {
         if (des_point == NULL)
             break;
-        if (des_point->visit == true)
+        if (des_point->visit == false)
             continue; //had visited
-        des_point->visit = true;
+        des_point->visit = false;
 
         node *now = des_point;
         StackArray s;
@@ -181,27 +142,33 @@ void start_cleaning(node *startpoint, MaxHeap *heap_node)
         {
             now = go_smaller(now);
             s.stack_Push(now);
-            if (now->visit = false)
-                now->visit = true;
+            step_count++;
+            if (now->visit = true)
+                now->visit = false;
         }
         now = des_point;
         // cout stack path
         while (!s.stack_IsEmpty())
         {
-            cout << s.stack_Top()->r << " " << s.stack_Top()->r << endl;
+            //cout << s.stack_Top()->r << " " << s.stack_Top()->r << endl;
+            output_queue->queue_Push(s.stack_Top());
             s.stack_Pop();
         }
 
         while (now != startpoint) //back path
         {
             // cout path
-            cout << now->r << " " << now->c << endl;
+            //cout << now->r << " " << now->c << endl;
+            output_queue->queue_Push(now);
             now = go_smaller(now);
             s.stack_Push(now);
-            if (now->visit = false)
-                now->visit = true;
+            step_count++;
+            if (now->visit = true)
+                now->visit = false;
         }
     }
+    //cout << startpoint->r << " " << startpoint->c << endl;
+    output_queue->queue_Push(startpoint);
 }
 
 node *go_smaller(node *now)
@@ -373,29 +340,3 @@ void build_adj_list()
             error();
     }
 }
-
-//int x = recharger->r, y = recharger->c;
-/*if (row >= map_row || col >= map_col || row < 0 || col < 0)
-        return;
-    if (map[row][col].dist > x)
-        map[row][col].dist = x;
-    map[row][col].visit = 1;
-    if (map[row - 1][col].type == 0 && map[row - 1][col].visit == 0) //up
-        cal_dist(map, row - 1, col, x + 1);
-    else if (map[row + 1][col].type == 0 && map[row + 1][col].visit == 0) //down
-        cal_dist(map, row + 1, col, x + 1);
-    else if (map[row][col - 1].type == 0 && map[row][col - 1].visit == 0) //left
-        cal_dist(map, row + 1, col, x + 1);
-    else if (map[row + 1][col + 1].type == 0 && map[row][col + 1].visit == 0) //right
-        cal_dist(map, row + 1, col, x + 1);
-    map[row][col].visit = 0;*/
-/*for (int i = 0; i < map_row; i++)
-    {
-        for (int j = 0; j < map_col; j++)
-        {
-            if (map[i][j].type != 1)
-                map[i][j].dist = abs(map[i][j].r - x) + abs(map[i][j].c - y);
-            else
-                map[i][j].dist = 0;
-        }
-    };*/
