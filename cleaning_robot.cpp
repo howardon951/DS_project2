@@ -199,14 +199,18 @@ void start_cleaning(node *startpoint)
                 if (godd->now->dir[i] != NULL)
                 {
                     if (godd->now->dir[i]->visit == 1) //unvisit
-                                                       /*    tmp += 10;
+                        tmp += 10;
                     if (godd->now->dir[i]->nearby == 2) //is near wall
                         tmp += 5;
                     if (godd->now->dir[i]->nearby == 2) //is near path
                         tmp += 2;
-                    if (tmp >= dirw) //15:unvisit&near 10:unvisit&!near 5:visit&near 0:visit&!near
-                     */
+                    if (tmp >= dirw && godd->battery_remain - 1 - godd->now->dir[i]->dist >= 0)
+                        //15:unvisit&near 10:unvisit&!near 5:visit&near 0:visit&!near
                         next_dir = i;
+                    else if (!godd->battery_remain - 1 - godd->now->dir[i]->dist >= 0)
+                    {
+                        next_dir = -1;
+                    }
                 }
             }
 
